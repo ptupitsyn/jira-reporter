@@ -16,7 +16,6 @@ namespace JiraReportService
 
         public JiraReportGenerator()
         {
-            ReportHtml = ReportJson = "Loading...";
             Task.Run(() => UpdaterThread());
         }
 
