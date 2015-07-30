@@ -55,7 +55,7 @@ namespace JiraReportService
             }
         }
 
-        private IEnumerable<ReportItem> GetReport(Jira jira)
+        private IEnumerable<Issue> GetIssues(Jira jira)
         {
             Status = "Processing JQL...";
 
@@ -66,27 +66,27 @@ namespace JiraReportService
 
             dynamic dyn = QueryApi(string.Format("search?jql={0}&maxResults=1000", jql), jira);
 
-            List<Issue> issues = Enumerable.ToList(GetIssues(dyn, jira));
-
-            var dt = DateTime.Now;
-
-            var authors = issues.SelectMany(x => x.History).Select(x => x.Author).Distinct().OrderBy(x => x);
-
-            return authors.Select(author => new ReportItem
-            {
-                Author = author,
-                Issues = issues.Where(x => x.History.Any(h => h.Author == author && h.Date > dt.AddHours(-12)))
-                    .ToArray()
-            }).Where(x => x.Issues.Any());
+            return GetIssues(dyn, jira);
         }
 
 
         private void UpdateReport()
         {
-            var reportItems = Jira.Instances.SelectMany(GetReport).ToArray();
+            var issues = Jira.Instances.SelectMany(GetIssues).ToArray();
 
-            ReportHtml = GetReportHtml(reportItems);
-            ReportJson = GetReportJson(reportItems);
+            var dt = DateTime.Now;
+
+            var authors = issues.SelectMany(x => x.History).Select(x => x.Author).Distinct().OrderBy(x => x);
+
+            var report = authors.Select(author => new ReportItem
+            {
+                Author = author,
+                Issues = issues.Where(x => x.History.Any(h => h.Author == author && h.Date > dt.AddHours(-12)))
+                    .ToArray()
+            }).Where(x => x.Issues.Any()).ToArray();
+
+            ReportHtml = GetReportHtml(report);
+            ReportJson = GetReportJson(report);
         }
 
         private static string GetReportHtml(ReportItem[] reportItems)
