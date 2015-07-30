@@ -55,13 +55,18 @@ namespace JiraReportService
             }
         }
 
-        private IEnumerable<ReportItem> GetReport()
+        private IEnumerable<ReportItem> GetReport(Jira jira)
         {
             Status = "Processing JQL...";
 
-            dynamic dyn = QueryApi("search?jql=updated%20%3E%20%22-12h%22&maxResults=1000");
+            var jql = "updated>-12h%20AND%20status%20not%20in%20(open)";
 
-            List<Issue> issues = Enumerable.ToList(GetIssues(dyn));
+            if (!string.IsNullOrEmpty(jira.Project))
+                jql = string.Format("project%3D{0}%20AND%20{1}", jira.Project, jql);
+
+            dynamic dyn = QueryApi(string.Format("search?jql={0}&maxResults=1000", jql), jira);
+
+            List<Issue> issues = Enumerable.ToList(GetIssues(dyn, jira));
 
             var dt = DateTime.Now;
 
@@ -78,7 +83,7 @@ namespace JiraReportService
 
         private void UpdateReport()
         {
-            var reportItems = GetReport().ToArray();
+            var reportItems = Jira.Instances.SelectMany(GetReport).ToArray();
 
             ReportHtml = GetReportHtml(reportItems);
             ReportJson = GetReportJson(reportItems);
@@ -118,15 +123,16 @@ namespace JiraReportService
                 x.Summary.Trim('.'), x.Status);
         }
 
-        private static dynamic QueryApi(string query)
+        private static dynamic QueryApi(string query, Jira jira)
         {
-            var wc = Jira.GetAuthorizedWebClient();
-            var resp = wc.DownloadString("http://atlassian.gridgain.com/jira/rest/api/latest/" + query);
+            var wc = jira.GetAuthorizedWebClient();
+            
+            var resp = wc.DownloadString(jira.Url + "/rest/api/latest/" + query);
 
             return Json.Decode(resp);
         }
 
-        private IEnumerable<Issue> GetIssues(dynamic response)
+        private IEnumerable<Issue> GetIssues(dynamic response, Jira jira)
         {
             int total = response.total;
             int cur = 0;
@@ -137,7 +143,7 @@ namespace JiraReportService
 
                 if (i.fields.status.name != "Open")
                 {
-                    var data = QueryApi(string.Format("issue/{0}?expand=changelog", i.Key));
+                    var data = QueryApi(string.Format("issue/{0}?expand=changelog", i.Key), jira);
                     //Console.WriteLine(data);
                     yield return new Issue
                     {

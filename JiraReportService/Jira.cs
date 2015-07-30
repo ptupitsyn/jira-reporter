@@ -5,9 +5,34 @@ using System.Text;
 
 namespace JiraReportService
 {
-    public static class Jira
+    public class Jira
     {
+        public static Jira[] Instances = {
+            new Jira("https://issues.apache.org/jira", "IGNITE"),
+            new Jira("http://atlassian.gridgain.com/jira", null)
+        };
+
         private static readonly string[] Creds = File.ReadAllLines("d:\\jira.jira");
+
+        private readonly string _url;
+
+        private readonly string _project;
+
+        private Jira(string url, string project)
+        {
+            _url = url;
+            _project = project;
+        }
+
+        public string Url
+        {
+            get { return _url; }
+        }
+
+        public string Project
+        {
+            get { return _project; }
+        }
 
         private static string GetEncodedCredentials()
         {
@@ -17,9 +42,13 @@ namespace JiraReportService
             return Convert.ToBase64String(byteCredentials);
         }
 
-        public static WebClient GetAuthorizedWebClient()
+        public WebClient GetAuthorizedWebClient()
         {
             var webClient = new WebClient();
+
+            if (!_url.Contains("gridgain"))
+                return webClient;
+
             webClient.Headers[HttpRequestHeader.Authorization] = "Basic " + GetEncodedCredentials();
             return webClient;
         }
