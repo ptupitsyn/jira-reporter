@@ -4,13 +4,8 @@ using System.Threading.Tasks;
 
 namespace JiraReportService
 {
-    public partial class JiraService : ServiceBase
+    public class JiraService : ServiceBase
     {
-        public JiraService()
-        {
-            InitializeComponent();
-        }
-
         protected override void OnStart(string[] args)
         {
             Task.Run(() => ListenerThread());
@@ -24,7 +19,7 @@ namespace JiraReportService
         {
             var jira = new JiraReportGenerator();
 
-            HttpServer.Run(r => GetResponse(r, jira), "http://localhost:3443/jiraReport/");
+            HttpServer.Run(r => GetResponse(r, jira), "http://*:3443/jiraReport/");
         }
 
         private static string GetResponse(HttpListenerRequest request, JiraReportGenerator jira)

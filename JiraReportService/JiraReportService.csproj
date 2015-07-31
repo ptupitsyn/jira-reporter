@@ -37,6 +37,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Configuration.Install" />
     <Reference Include="System.Core" />
     <Reference Include="System.Web.Helpers, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="System.Xml.Linq" />
@@ -48,13 +49,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="HttpServer.cs" />
+    <Compile Include="Installer.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Jira.cs" />
     <Compile Include="JiraReportGenerator.cs" />
     <Compile Include="JiraService.cs">
       <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="JiraService.Designer.cs">
-      <DependentUpon>JiraService.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

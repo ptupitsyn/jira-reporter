@@ -13,9 +13,6 @@ namespace JiraReportService
 
             while (true)
             {
-                // URI prefixes are required, 
-                // for example "http://contoso.com:8080/index/".
-
                 // Create a listener.
                 var context = listener.GetContext();  // this blocks
                 var request = context.Request;
@@ -35,6 +32,8 @@ namespace JiraReportService
                 // You must close the output stream.
                 output.Close();
             }
+            
+            // ReSharper disable once FunctionNeverReturns
         }
     }
 }
