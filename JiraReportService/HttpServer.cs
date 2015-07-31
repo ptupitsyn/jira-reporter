@@ -19,15 +19,22 @@ namespace JiraReportService
 
                 // Obtain a response object.
                 var response = context.Response;
-
-                // Construct a response. 
-                var responseString = requestProcessor(request);
-                var buffer = Encoding.UTF8.GetBytes(responseString);
-
-                // Get a response stream and write the response to it.
-                response.ContentLength64 = buffer.Length;
                 var output = response.OutputStream;
-                output.Write(buffer, 0, buffer.Length);
+
+                try
+                {
+                    // Construct a response. 
+                    var responseString = requestProcessor(request);
+                    var buffer = Encoding.UTF8.GetBytes(responseString);
+
+                    // Get a response stream and write the response to it.
+                    response.ContentLength64 = buffer.Length;
+                    output.Write(buffer, 0, buffer.Length);
+                }
+                catch (Exception)
+                {
+                    // Ignore
+                }
 
                 // You must close the output stream.
                 output.Close();
