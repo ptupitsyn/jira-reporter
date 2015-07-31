@@ -65,7 +65,7 @@ namespace JiraReportService
 
         private void UpdateReport()
         {
-            var issues = Jira.Instances.SelectMany(GetIssues).ToArray();
+            var issues = Jira.Instances.AsParallel().SelectMany(GetIssues).ToArray();
 
             var dt = DateTime.Now;
 
@@ -74,8 +74,10 @@ namespace JiraReportService
             var report = authors.Select(author => new ReportItem
             {
                 Author = author,
-                Issues = issues.Where(x => x.History.Any(h => h.Author == author && h.Date > dt.AddHours(-12)))
-                    .ToArray()
+                Issues = issues.Where(x =>
+                    x.History.Any(h => h.Author == author && h.Date > dt.AddHours(-12))
+                    || x.Comments.Any(h => h.Author == author && h.Date > dt.AddHours(-12))
+                    ).ToArray()
             }).Where(x => x.Issues.Any()).ToArray();
 
             ReportHtml = GetReportHtml(report);
@@ -99,6 +101,8 @@ namespace JiraReportService
             }
 
             sb.Append("<br/><p/><hr/><br/>");
+            sb.Append(
+                "<p><a href='https://github.com/kefir0/jira-reporter/'>https://github.com/kefir0/jira-reporter/</a></p>");
 
             var reportHtml = sb.ToString();
             return reportHtml;
@@ -112,8 +116,8 @@ namespace JiraReportService
         private static string FormatIssue(Issue x)
         {
             return string.Format(
-                "<a href='http://atlassian.gridgain.com/jira/browse/{0}'>{0} {1}</a> - {2}", x.Key,
-                x.Summary.Trim('.'), x.Status);
+                "<a href='{3}/browse/{0}'>{0} {1}</a> - {2}", x.Key,
+                x.Summary.Trim('.'), x.Status, x.JiraUrl);
         }
 
         private static dynamic QueryApi(string query, Jira jira)
@@ -142,7 +146,8 @@ namespace JiraReportService
                     Summary = i.fields.summary,
                     Status = i.fields.status.name,
                     Comments = Enumerable.ToArray(GetItems(data.fields.comment.comments)),
-                    History = Enumerable.ToArray(GetItems(data.changelog.histories))
+                    History = Enumerable.ToArray(GetItems(data.changelog.histories)),
+                    JiraUrl = jira.Url
                 };
             }
         }
@@ -168,6 +173,7 @@ namespace JiraReportService
         public string Status { get; set; }
         public Item[] Comments { get; set; }
         public Item[] History { get; set; }
+        public string JiraUrl { get; set; }
     }
 
     public class Item
