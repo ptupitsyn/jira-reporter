@@ -11,31 +11,23 @@ namespace JiraReportService
     public class JiraReportGenerator
     {
         private string _reportHtml = "";
-        private string _reportJson = "";
-        private string _status = "Starting...";
 
         public JiraReportGenerator()
         {
+            Status = "Starting...";
+            ReportJson = "";
             Task.Run(() => UpdaterThread());
         }
 
         public string ReportHtml
         {
-            get { return _reportHtml + _status; }
+            get { return _reportHtml + Status; }
             private set { _reportHtml = value; }
         }
 
-        public string ReportJson
-        {
-            get { return _reportJson; }
-            private set { _reportJson = value; }
-        }
+        public string ReportJson { get; private set; }
 
-        public string Status
-        {
-            get { return _status; }
-            private set { _status = value; }
-        }
+        public string Status { get; private set; }
 
         private void UpdaterThread()
         {
@@ -53,6 +45,7 @@ namespace JiraReportService
 
                 Thread.Sleep(TimeSpan.FromMinutes(1));
             }
+            // ReSharper disable once FunctionNeverReturns
         }
 
         private IEnumerable<Issue> GetIssues(Jira jira)
@@ -135,25 +128,22 @@ namespace JiraReportService
         private IEnumerable<Issue> GetIssues(dynamic response, Jira jira)
         {
             int total = response.total;
-            int cur = 0;
+            var cur = 0;
 
             foreach (var i in response.issues)
             {
                 Status = string.Format("Loading issue {0} of {1}", cur++, total);
 
-                if (i.fields.status.name != "Open")
+                var data = QueryApi(string.Format("issue/{0}?expand=changelog", i.Key), jira);
+
+                yield return new Issue
                 {
-                    var data = QueryApi(string.Format("issue/{0}?expand=changelog", i.Key), jira);
-                    //Console.WriteLine(data);
-                    yield return new Issue
-                    {
-                        Key = i.Key,
-                        Summary = i.fields.summary,
-                        Status = i.fields.status.name,
-                        Comments = Enumerable.ToArray(GetItems(data.fields.comment.comments)),
-                        History = Enumerable.ToArray(GetItems(data.changelog.histories))
-                    };
-                }
+                    Key = i.Key,
+                    Summary = i.fields.summary,
+                    Status = i.fields.status.name,
+                    Comments = Enumerable.ToArray(GetItems(data.fields.comment.comments)),
+                    History = Enumerable.ToArray(GetItems(data.changelog.histories))
+                };
             }
         }
 

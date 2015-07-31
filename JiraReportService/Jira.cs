@@ -1,27 +1,27 @@
- using System;
- using System.IO;
- using System.Net;
+using System;
+using System.IO;
+using System.Net;
 using System.Text;
 
 namespace JiraReportService
 {
     public class Jira
     {
-        public static Jira[] Instances = {
-            new Jira("https://issues.apache.org/jira", "IGNITE"),
-            new Jira("http://atlassian.gridgain.com/jira", null)
+        public static Jira[] Instances =
+        {
+            new Jira("https://issues.apache.org/jira", "IGNITE", null),
+            new Jira("http://atlassian.gridgain.com/jira", null, File.ReadAllLines("d:\\jira.jira"))
         };
 
-        private static readonly string[] Creds = File.ReadAllLines("d:\\jira.jira");
-
+        private readonly string[] _creds;
+        private readonly string _project;
         private readonly string _url;
 
-        private readonly string _project;
-
-        private Jira(string url, string project)
+        private Jira(string url, string project, string[] creds)
         {
             _url = url;
             _project = project;
+            _creds = creds;
         }
 
         public string Url
@@ -34,23 +34,23 @@ namespace JiraReportService
             get { return _project; }
         }
 
-        private static string GetEncodedCredentials()
-        {
-            // ReSharper disable once CoVariantArrayConversion
-            var mergedCredentials = string.Format("{0}:{1}", Creds);
-            var byteCredentials = Encoding.UTF8.GetBytes(mergedCredentials);
-            return Convert.ToBase64String(byteCredentials);
-        }
-
         public WebClient GetAuthorizedWebClient()
         {
             var webClient = new WebClient();
 
-            if (!_url.Contains("gridgain"))
+            if (_creds == null)
                 return webClient;
 
             webClient.Headers[HttpRequestHeader.Authorization] = "Basic " + GetEncodedCredentials();
             return webClient;
+        }
+
+        private string GetEncodedCredentials()
+        {
+            // ReSharper disable once CoVariantArrayConversion
+            var mergedCredentials = string.Format("{0}:{1}", _creds);
+            var byteCredentials = Encoding.UTF8.GetBytes(mergedCredentials);
+            return Convert.ToBase64String(byteCredentials);
         }
     }
 }
