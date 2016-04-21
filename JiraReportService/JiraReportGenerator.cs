@@ -43,7 +43,7 @@ namespace JiraReportService
                     Status = "Error: " + ex;
                 }
 
-                Thread.Sleep(TimeSpan.FromMinutes(3));
+                Thread.Sleep(TimeSpan.FromMinutes(5));
             }
             // ReSharper disable once FunctionNeverReturns
         }
