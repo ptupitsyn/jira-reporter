@@ -7,6 +7,7 @@ type Jira(url : string, project : string, creds) =
     member this.Url = url
     member this.Project = project
     member this.Creds = creds
+    member this.ApiUrl = url + "/rest/api/latest/"
     
     member this.GetAuthorizedClient() = 
         let wc = new WebClient()
@@ -19,4 +20,4 @@ type Jira(url : string, project : string, creds) =
         wc
     
     member this.RunQuery(query : string) = 
-        this.GetAuthorizedClient().DownloadString url + "/rest/api/latest/" + query
+        this.GetAuthorizedClient().DownloadString this.ApiUrl + query
