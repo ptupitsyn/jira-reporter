@@ -52,10 +52,11 @@ namespace JiraReportService
         {
             Status = "Processing JQL...";
 
-            var jql = "updated>-12h%20AND%20status%20not%20in%20(open)";
+            var jql = "updated>-12h AND status not in (open)";
 
             if (!string.IsNullOrEmpty(jira.Project))
-                jql = string.Format("project%3D{0}%20AND%20{1}", jira.Project, jql);
+                jql = string.Format("project%3D{0}%20AND%20{1}" +
+                                    "", jira.Project, jql);
 
             dynamic dyn = QueryApi(string.Format("search?jql={0}&maxResults=1000", jql), jira);
 

@@ -1,20 +1,16 @@
 ﻿open JiraFsharpService
 open FSharp.Data
 
-type Issue = JsonProvider<"https://issues.apache.org/jira/rest/api/latest/issue/IGNITE-1">
+type Jira = JsonProvider<"https://issues.apache.org/jira/rest/api/latest/search?filter=-4">
 
 [<EntryPoint>]
 let main argv = 
     printfn "Starting Jira test"
 
-(*
-    let jira = Jira("https://issues.apache.org/jira", "IGNITE", None)
-    let res = jira.RunQuery "issue/IGNITE-100"
-    printf "%A" res
-    *)
+    let jql = "project in (IGNITE) AND updated>-12h AND status not in (open)"
 
-    let json = Issue.Load("https://issues.apache.org/jira/rest/api/latest/issue/IGNITE-2699")    
+    Jira.GetSample().Issues |> Array.map (fun issue -> (issue.Key + ": " + issue.Fields.Summary)) |> printf "%A"
 
-    printf "%A" json.Fields.Summary
+    // TODO: https://suave.io
 
     0 // return an integer exit code
