@@ -11,8 +11,11 @@ let main argv =
     let getReport : WebPart =
         fun (ctx : HttpContext) ->
             async {
-                return! OK Jira.getIssues ctx
+                let! html = Jira.getIssues
+                return! OK html ctx
             }
+
+    System.Diagnostics.Process.Start("http://localhost:8083") |> ignore
 
     startWebServer defaultConfig getReport
 
