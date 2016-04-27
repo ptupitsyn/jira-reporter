@@ -1,23 +1,24 @@
 ﻿namespace JiraFsharpService
-open System
-open System.IO
-open System.Net
 
-type Jira(url : string, project : string, creds) = 
-    member this.Url = url
-    member this.Project = project
-    member this.Creds = creds
-    member this.ApiUrl = url + "/rest/api/latest/"
-    
-    member this.GetAuthorizedClient() = 
-        let wc = new WebClient()
+module Jira = 
+    open FSharp.Data
 
-        wc.Headers.[HttpRequestHeader.Authorization] <- 
-            match creds with
-                | Some(usr, pwd) -> sprintf "%s:%s" usr pwd
-                | None -> null
+    type Issues = JsonProvider<"https://issues.apache.org/jira/rest/api/latest/search?jql=project=ignite&maxResults=1&expand=changelog">
 
-        wc
-    
-    member this.RunQuery(query : string) = 
-        this.GetAuthorizedClient().DownloadString this.ApiUrl + query
+    let getIssues = 
+        let jiraResult = Issues.Load "https://issues.apache.org/jira/rest/api/latest/search?jql=project=ignite AND updated>-12h AND status not in (open)&maxResults=50&expand=changelog"
+
+        let concat acc x = acc + "<br />" + x
+        let concat2 acc x = acc + "<br /><br />" + x
+        let makeHeader x = "<h3>" + x + "</h3>"
+
+        jiraResult.Issues
+            |> Seq.collect (fun issue -> 
+                issue.Changelog.Histories 
+                    |> Seq.map (fun hist -> hist.Author.DisplayName)
+                    |> Seq.distinct
+                    |> Seq.map (fun author -> (author, issue.Key + " " + issue.Fields.Summary + " - " + issue.Fields.Status.Name))
+                )
+            |> Seq.groupBy (fun (person, ticket) -> makeHeader person)
+            |> Seq.map (fun (person, issues) -> concat person (issues |> Seq.map snd |> Seq.reduce concat))
+            |> Seq.reduce concat2

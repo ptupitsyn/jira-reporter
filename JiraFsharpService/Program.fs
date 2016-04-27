@@ -1,16 +1,19 @@
 ﻿open JiraFsharpService
-open FSharp.Data
-
-type Jira = JsonProvider<"https://issues.apache.org/jira/rest/api/latest/search?filter=-4">
+open Suave
+open Suave.Filters
+open Suave.Successful
+open Suave.Operators
 
 [<EntryPoint>]
 let main argv = 
     printfn "Starting Jira test"
 
-    let jql = "project in (IGNITE) AND updated>-12h AND status not in (open)"
+    let getReport : WebPart =
+        fun (ctx : HttpContext) ->
+            async {
+                return! OK Jira.getIssues ctx
+            }
 
-    Jira.GetSample().Issues |> Array.map (fun issue -> (issue.Key + ": " + issue.Fields.Summary)) |> printf "%A"
-
-    // TODO: https://suave.io
+    startWebServer defaultConfig getReport
 
     0 // return an integer exit code
