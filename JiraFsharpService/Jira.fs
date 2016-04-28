@@ -2,6 +2,7 @@
 
 module Jira = 
     open FSharp.Data
+    open System
 
     type Issues = JsonProvider<"https://issues.apache.org/jira/rest/api/latest/search?jql=project=ignite&maxResults=1&expand=changelog">
 
@@ -24,7 +25,10 @@ module Jira =
                             |> Seq.distinct
                             |> Seq.map (fun author -> (author, (issue.Key, issue.Fields.Summary, issue.Fields.Status.Name)))
                         )
-                    |> Seq.groupBy (fun (person, ticket) -> makeHeader person)
-                    |> Seq.map (fun (person, issues) -> concat person (issues |> Seq.map (snd >> formatIssue) |> Seq.reduce concat))
+                    |> Seq.groupBy (fun (person, _) -> makeHeader person)
+                    |> Seq.sortBy (fun (person, _) -> person)
+                    |> Seq.map (fun (person, issues) -> person + (issues |> Seq.map (snd >> formatIssue) |> Seq.reduce concat))
                     |> Seq.reduce concat2
         }
+
+    let getTitle = DateTime.Now |> (fun dt -> (sprintf "DAILY STATUS (%i/%i/%i)" dt.Month dt.Day dt.Year))

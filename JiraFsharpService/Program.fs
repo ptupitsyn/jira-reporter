@@ -11,7 +11,8 @@ let main argv =
     let getReport : WebPart =
         fun (ctx : HttpContext) ->
             async {
-                let! html = Jira.getIssues
+                let! issuesHtml = Jira.getIssues
+                let html = sprintf "<h1>%s</h1>%s" Jira.getTitle issuesHtml
                 return! OK html ctx
             }
 
