@@ -19,6 +19,7 @@ module Jira =
                 jiraResult.Issues
                     |> Seq.collect (fun issue -> 
                         issue.Changelog.Histories 
+                            |> Seq.where (fun hist -> (System.DateTime.Now - hist.Created).Hours < 12)
                             |> Seq.map (fun hist -> hist.Author.DisplayName)
                             |> Seq.distinct
                             |> Seq.map (fun author -> (author, (issue.Key, issue.Fields.Summary, issue.Fields.Status.Name)))
