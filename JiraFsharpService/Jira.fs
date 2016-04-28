@@ -12,6 +12,8 @@ module Jira =
             let concat acc x = acc + "<br />" + x
             let concat2 acc x = acc + "<br /><br />" + x
             let makeHeader x = "<h3>" + x + "</h3>"
+            let makeLink text url = sprintf "<a href='%s'>%s</a>" url text
+            let formatIssue (key, sum, status) = makeLink (key + " " + sum) (sprintf "https://issues.apache.org/jira/browse/%s" key) + " - " + status
 
             return
                 jiraResult.Issues
@@ -19,9 +21,9 @@ module Jira =
                         issue.Changelog.Histories 
                             |> Seq.map (fun hist -> hist.Author.DisplayName)
                             |> Seq.distinct
-                            |> Seq.map (fun author -> (author, issue.Key + " " + issue.Fields.Summary + " - " + issue.Fields.Status.Name))
+                            |> Seq.map (fun author -> (author, (issue.Key, issue.Fields.Summary, issue.Fields.Status.Name)))
                         )
                     |> Seq.groupBy (fun (person, ticket) -> makeHeader person)
-                    |> Seq.map (fun (person, issues) -> concat person (issues |> Seq.map snd |> Seq.reduce concat))
+                    |> Seq.map (fun (person, issues) -> concat person (issues |> Seq.map (snd >> formatIssue) |> Seq.reduce concat))
                     |> Seq.reduce concat2
         }
