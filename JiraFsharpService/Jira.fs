@@ -19,7 +19,7 @@ module Jira =
         let issues = jiraResult.Issues
 
         match issues with
-            | [||] -> "No issues found for the given period"
+            | [||] -> "No issues found for the given period: " + period
             | x -> x 
                 |> Seq.collect (fun issue -> 
                     issue.Changelog.Histories 
