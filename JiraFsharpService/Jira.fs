@@ -13,8 +13,8 @@ module Jira =
     type Issues = JsonProvider<sampleUrl>
 
     let getIssues period = 
-        let url = sprintf "%s/search?jql=project=ignite AND updated>%s AND status not in (open)&maxResults=100&expand=changelog" apiUrl period
-        let onReviewUrl = sprintf "%s/search?jql=project=ignite AND status = 'Patch Available'&maxResults=100&expand=changelog" apiUrl
+        let url = sprintf "%ssearch?jql=project=ignite AND updated>%s AND status not in (open)&maxResults=100&expand=changelog" apiUrl period
+        let onReviewUrl = sprintf "%ssearch?jql=project=ignite AND status = 'Patch Available'&maxResults=100&expand=changelog" apiUrl
         
         let jiraResult = Issues.Load url
         //let onReview = Issues.Load onReviewUrl
