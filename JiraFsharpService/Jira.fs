@@ -4,11 +4,20 @@ module Jira =
     open FSharp.Data
     open System
 
-    type Issues = JsonProvider<"https://issues.apache.org/jira/rest/api/latest/search?jql=project=ignite&maxResults=1&expand=changelog">
+    [<Literal>]
+    let apiUrl = "https://issues.apache.org/jira/rest/api/2/"
+    
+    [<Literal>]
+    let sampleUrl = apiUrl + "search?jql=project=ignite&maxResults=1&expand=changelog"
+
+    type Issues = JsonProvider<sampleUrl>
 
     let getIssues period = 
-        let url = sprintf "https://issues.apache.org/jira/rest/api/latest/search?jql=project=ignite AND updated>%s AND status not in (open)&maxResults=50&expand=changelog" period
+        let url = sprintf "%s/search?jql=project=ignite AND updated>%s AND status not in (open)&maxResults=100&expand=changelog" apiUrl period
+        let onReviewUrl = sprintf "%s/search?jql=project=ignite AND status = 'Patch Available'&maxResults=100&expand=changelog" apiUrl
+        
         let jiraResult = Issues.Load url
+        //let onReview = Issues.Load onReviewUrl
 
         let concat acc x = acc + "<br />" + x
         let concat2 acc x = acc + "<br /><br />" + x
