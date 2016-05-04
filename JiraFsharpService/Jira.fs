@@ -8,7 +8,7 @@ module Jira =
     let apiUrl = "https://issues.apache.org/jira/rest/api/2/"
     
     [<Literal>]
-    let sampleUrl = apiUrl + "search?jql=project=ignite&maxResults=1&expand=changelog"
+    let sampleUrl = apiUrl + "search?jql=project=ignite&maxResults=10&expand=changelog"
 
     type Issues = JsonProvider<sampleUrl>
 
@@ -33,16 +33,24 @@ module Jira =
                     | _ -> "Black"
             sprintf "<span style='color:%s'>%s</span>" color status
 
+        let getAssignee (issue : Issues.Issue) = 
+            match issue.Fields.Assignee with
+                | Some(ass) -> ass.DisplayName
+                | _ -> "Unassigned"
+
+        let getWaitTime (issue : Issues.Issue) = 
+            sprintf "%s (waiting %i days)" (getAssignee issue) (int (DateTime.Now - issue.Fields.Updated).TotalDays)
+
         let formatIssueEx includeStatus (issue : Issues.Issue) = 
             let summary = issue.Key + " " + issue.Fields.Summary
             let url = sprintf "https://issues.apache.org/jira/browse/%s" issue.Key
-            makeLink summary url + (if includeStatus then " - " + formatStatus issue.Fields.Status.Name else "")
+            makeLink summary url + " - " + (if includeStatus then formatStatus issue.Fields.Status.Name else getWaitTime issue)
 
         let formatIssue = formatIssueEx true
         let formatIssueNoStatus = formatIssueEx false
 
         let historyIsPatch (hist : Issues.History) = 
-            hist.Items |> Seq.exists (fun x -> (x.Field = "status" && x.ToString = "Patch Available"))
+            hist.Items |> Seq.exists (fun x -> (x.Field = "status" && x.ToString.String = Some("Patch Available")))
 
         let findPatchAuthor (issue : Issues.Issue) = 
             (issue.Changelog.Histories |> Seq.filter historyIsPatch |> Seq.last).Author.DisplayName
@@ -70,7 +78,7 @@ module Jira =
                     (fun (person, issuePairs) -> 
                         let issues = issuePairs |> Seq.map snd |> List.ofSeq
                         let reviews = match pendingPatches.TryFind person with
-                            | Some(reviews) -> concat "<br/><br/><b>Pending Patches</b>" (reviews |> Seq.filter (fun x -> issues |> List.exists (fun y -> y.Id = x.Id) |> not) |> Seq.map formatIssueNoStatus |> Seq.reduce concat)
+                            | Some(reviews) -> concat "<br/><br/>Pending Patches" (reviews |> Seq.sortBy (fun x -> x.Fields.Updated) |> Seq.map formatIssueNoStatus |> Seq.reduce concat)
                             | _ -> ""
                         (makeHeader person) + (issues |> Seq.map formatIssue |> Seq.reduce concat) + reviews
                     )
