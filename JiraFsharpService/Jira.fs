@@ -1,20 +1,32 @@
 ﻿namespace JiraFsharpService
 
-module Jira = 
-    open FSharp.Data
-    open System
+open System
+open FSharp.Data
 
+type JiraIssue = { Key : string; Summary : string; Status : string; Assignee : string; Url : string; Updated : DateTime  }
+type ReportItem = { Person : string; Tasks : JiraIssue[]; Patches : JiraIssue[] }
+
+module Jira = 
     [<Literal>]
-    let apiUrl = "https://issues.apache.org/jira/rest/api/2/"
+    let ApiUrl = "https://issues.apache.org/jira/rest/api/2/"
     
     [<Literal>]
-    let sampleUrl = apiUrl + "search?jql=project=ignite&maxResults=10&expand=changelog"
+    let SampleUrl = ApiUrl + "search?jql=project=ignite&maxResults=10&expand=changelog"
 
-    type Issues = JsonProvider<sampleUrl>
+    type Issues = JsonProvider<SampleUrl>
+
+    let getAssignee (issue : Issues.Issue) = 
+            match issue.Fields.Assignee with
+                | Some(ass) -> ass.DisplayName
+                | _ -> "Unassigned"
+
+    type Issues.Issue with
+        member this.ToJiraIssue = 
+            { Key=this.Key; Summary=this.Fields.Summary; Status=this.Fields.Status.Name; Assignee=getAssignee this; Url=this.Self; Updated=this.Fields.Updated }
 
     let getIssues period = 
-        let url = sprintf "%ssearch?jql=project=ignite AND updated>%s AND status not in (open)&maxResults=100&expand=changelog" apiUrl period
-        let onReviewUrl = sprintf "%ssearch?jql=project=ignite AND status = 'Patch Available'&maxResults=100&expand=changelog" apiUrl
+        let url = sprintf "%ssearch?jql=project=ignite AND updated>%s AND status not in (open)&maxResults=100&expand=changelog" ApiUrl period
+        let onReviewUrl = sprintf "%ssearch?jql=project=ignite AND status = 'Patch Available'&maxResults=100&expand=changelog" ApiUrl
         
         let jiraResult = Issues.Load url
         let onReview = Issues.Load onReviewUrl
@@ -31,12 +43,7 @@ module Jira =
                     | "Closed" -> "Green"
                     | "In Progress" -> "DimGray"
                     | _ -> "Black"
-            sprintf "<span style='color:%s'>%s</span>" color status
-
-        let getAssignee (issue : Issues.Issue) = 
-            match issue.Fields.Assignee with
-                | Some(ass) -> ass.DisplayName
-                | _ -> "Unassigned"
+            sprintf "<span style='color:%s'>%s</span>" color status        
 
         let getWaitTime (issue : Issues.Issue) = 
             sprintf "%s (waiting %i days)" (getAssignee issue) (int (DateTime.Now - issue.Fields.Updated).TotalDays)

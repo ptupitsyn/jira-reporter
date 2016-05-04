@@ -57,8 +57,9 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Jira.fs" />
     <None Include="App.config" />
-    <Compile Include="Program.fs" />
     <Content Include="packages.config" />
+    <Compile Include="HtmlFormatter.fs" />
+    <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">
