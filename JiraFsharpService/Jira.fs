@@ -14,7 +14,20 @@ module Jira =
         let concat2 acc x = acc + "<br /><br />" + x
         let makeHeader x = "<h3>" + x + "</h3>"
         let makeLink text url = sprintf "<a href='%s'>%s</a>" url text
-        let formatIssue (key, sum, status) = makeLink (key + " " + sum) (sprintf "https://issues.apache.org/jira/browse/%s" key) + " - " + status
+
+        let formatStatus status = 
+            let color = 
+                match status with
+                    | "Patch Available" -> "Orange"
+                    | "Closed" -> "Green"
+                    | "In Progress" -> "DimGray"
+                    | _ -> "Black"
+            sprintf "<span style='color:%s'>%s</span>" color status
+
+        let formatIssue (key, sum, status) = 
+            let summary = key + " " + sum
+            let url = sprintf "https://issues.apache.org/jira/browse/%s" key
+            makeLink summary url + " - " + formatStatus status
 
         let issues = jiraResult.Issues
 
