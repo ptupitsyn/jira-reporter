@@ -2,10 +2,9 @@
 open System
 
 module HtmlFormatter = 
-    let renderReport (items : ReportItem[]) = 
+    let renderReport (items : seq<ReportItem>) = 
         let concat acc x = acc + "<br />" + x
         let concat2 acc x = acc + "<br /><br />" + x
-        let makeHeader x = "<h3>" + x + "</h3>"
         let makeLink text url = sprintf "<a href='%s'>%s</a>" url text
 
         let formatStatus status = 
@@ -22,17 +21,20 @@ module HtmlFormatter =
             makeLink (issue.Key + " " + issue.Summary) issue.Url + " - " + formatStatus issue.Status
 
         let getWaitTime (issue : JiraIssue) = 
-            sprintf "%s (waiting %i days)" issue.Assignee (int (DateTime.Now - issue.Updated).TotalDays)
+            sprintf "%s (%i days)" issue.Assignee (int (DateTime.Now - issue.Updated).TotalDays)
 
         let renderPatch (issue : JiraIssue) = 
             makeLink (issue.Key + " " + issue.Summary) issue.Url + " - " + getWaitTime issue
 
+        // TODO: Interleaving row background
         let renderItem (item : ReportItem) = 
-            sprintf "%s<br/>%s<br/><b>Pending Patches</b><br/>%s" item.Person 
-                (item.Tasks |> Seq.map renderIssue |> Seq.reduce concat)
-                (item.Patches |> Seq.map renderPatch |> Seq.reduce concat)
+            let tasks = item.Tasks |> Seq.map renderIssue |> Seq.reduce concat
+            let patches = 
+                if item.Patches.Length > 0 
+                    then item.Patches |> Seq.map renderPatch |> Seq.fold concat "<br/><br/><b>Pending Patches</b>" 
+                    else ""
+            sprintf "<h2>%s</h2>%s%s" item.Person tasks patches
 
-        let title = makeHeader (Jira.getTitle())
         let report = items |> Seq.map renderItem |> Seq.reduce concat2
-        sprintf "%s<br/>%s" title report
+        sprintf "<h1>%s</h1>%s" (Jira.getTitle()) report
 

@@ -7,8 +7,13 @@ type JiraIssue = { Key : string; Summary : string; Status : string; Assignee : s
 type ReportItem = { Person : string; Tasks : JiraIssue[]; Patches : JiraIssue[] }
 
 module Jira = 
+
+
     [<Literal>]
-    let ApiUrl = "https://issues.apache.org/jira/rest/api/2/"
+    let JiraUrl = "https://issues.apache.org/jira/"
+
+    [<Literal>]
+    let ApiUrl = JiraUrl + "rest/api/2/"
     
     [<Literal>]
     let SampleUrl = ApiUrl + "search?jql=project=ignite&maxResults=10&expand=changelog"
@@ -20,9 +25,15 @@ module Jira =
                 | Some(ass) -> ass.DisplayName
                 | _ -> "Unassigned"
 
-    type Issues.Issue with
-        member this.ToJiraIssue = 
-            { Key=this.Key; Summary=this.Fields.Summary; Status=this.Fields.Status.Name; Assignee=getAssignee this; Url=this.Self; Updated=this.Fields.Updated }
+    let createIssue (this : Issues.Issue) =
+        { 
+            Key = this.Key; 
+            Summary = this.Fields.Summary; 
+            Status = this.Fields.Status.Name; 
+            Assignee = getAssignee this; 
+            Url = JiraUrl + "browse/" + this.Key; 
+            Updated = this.Fields.Updated 
+        }
 
     let getIssues period = 
         let url = sprintf "%ssearch?jql=project=ignite AND updated>%s AND status not in (open)&maxResults=100&expand=changelog" ApiUrl period
@@ -30,31 +41,6 @@ module Jira =
         
         let jiraResult = Issues.Load url
         let onReview = Issues.Load onReviewUrl
-
-        let concat acc x = acc + "<br />" + x
-        let concat2 acc x = acc + "<br /><br />" + x
-        let makeHeader x = "<h3>" + x + "</h3>"
-        let makeLink text url = sprintf "<a href='%s'>%s</a>" url text
-
-        let formatStatus status = 
-            let color = 
-                match status with
-                    | "Patch Available" -> "Orange"
-                    | "Closed" -> "Green"
-                    | "In Progress" -> "DimGray"
-                    | _ -> "Black"
-            sprintf "<span style='color:%s'>%s</span>" color status        
-
-        let getWaitTime (issue : Issues.Issue) = 
-            sprintf "%s (waiting %i days)" (getAssignee issue) (int (DateTime.Now - issue.Fields.Updated).TotalDays)
-
-        let formatIssueEx includeStatus (issue : Issues.Issue) = 
-            let summary = issue.Key + " " + issue.Fields.Summary
-            let url = sprintf "https://issues.apache.org/jira/browse/%s" issue.Key
-            makeLink summary url + " - " + (if includeStatus then formatStatus issue.Fields.Status.Name else getWaitTime issue)
-
-        let formatIssue = formatIssueEx true
-        let formatIssueNoStatus = formatIssueEx false
 
         let historyIsPatch (hist : Issues.History) = 
             hist.Items |> Seq.exists (fun x -> (x.Field = "status" && x.ToString.String = Some("Patch Available")))
@@ -67,10 +53,15 @@ module Jira =
                 |> Seq.groupBy findPatchAuthor
                 |> Map.ofSeq
 
+        let getPatches person = 
+            match pendingPatches.TryFind person with
+                | Some(reviews) -> reviews |> Seq.map createIssue |> Seq.sortBy (fun x -> x.Updated) |> Array.ofSeq
+                | _ -> [||]                
+
         let issues = jiraResult.Issues
 
         match issues with
-            | [||] -> "No issues found for the given period: " + period
+            | [||] -> Seq.empty
             | x -> x 
                 |> Seq.collect (fun issue -> 
                     issue.Changelog.Histories 
@@ -81,14 +72,11 @@ module Jira =
                     )
                 |> Seq.groupBy (fun (person, _) -> person)
                 |> Seq.sortBy (fun (person, _) -> person)
-                |> Seq.map 
-                    (fun (person, issuePairs) -> 
-                        let issues = issuePairs |> Seq.map snd |> List.ofSeq
-                        let reviews = match pendingPatches.TryFind person with
-                            | Some(reviews) -> concat "<br/><br/>Pending Patches" (reviews |> Seq.sortBy (fun x -> x.Fields.Updated) |> Seq.map formatIssueNoStatus |> Seq.reduce concat)
-                            | _ -> ""
-                        (makeHeader person) + (issues |> Seq.map formatIssue |> Seq.reduce concat) + reviews
-                    )
-                |> Seq.reduce concat2
+                |> Seq.map (fun (person, issuePairs) -> 
+                            { 
+                                Person = person; 
+                                Tasks = issuePairs |> Seq.map (snd>>createIssue) |> Array.ofSeq; 
+                                Patches = getPatches person
+                            })
 
     let getTitle() = DateTime.Now |> (fun dt -> (sprintf "DAILY STATUS (%i/%i/%i)" dt.Month dt.Day dt.Year))

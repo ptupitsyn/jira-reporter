@@ -35,10 +35,11 @@ let main argv =
             | x when x > DateTime.Now.AddSeconds(-5.0) -> cachedReport
             | _ -> 
                 let (issues, elapsed) = measureTime(fun() -> Jira.getIssues "-12h")
-                let title = Jira.getTitle()
                 lastUpdated <- DateTime.Now
 
-                cachedReport <- sprintf "%s<h1>%s</h1>%s<br/><hr/>Last updated at %A in %A%s" header title issues lastUpdated elapsed footer
+                let reportBody = HtmlFormatter.renderReport issues
+
+                cachedReport <- sprintf "%s%s<br/><hr/>Last updated at %A in %A%s" header reportBody lastUpdated elapsed footer
                 cachedReport
 
     let getReportSynced() = lock monitor getReport
