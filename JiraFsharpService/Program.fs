@@ -39,7 +39,9 @@ let main argv =
 
                 let reportBody = HtmlFormatter.renderReport issues
 
-                cachedReport <- sprintf "%s%s<br/><hr/>Last updated at %A in %A%s" header reportBody lastUpdated elapsed footer
+                cachedReport <- sprintf "%s%s<br/><br/><hr/><span style='font-size:small'>Last updated at %A in %A%s</span>" 
+                    header reportBody lastUpdated elapsed footer
+                
                 cachedReport
 
     let getReportSynced() = lock monitor getReport
@@ -49,7 +51,7 @@ let main argv =
             let html = getReportSynced()
             OK html ctx
 
-    Process.Start("http://localhost:8083") |> ignore
+    Process.Start("http://localhost:3443") |> ignore
 
     startWebServer defaultConfig getReportWeb
 

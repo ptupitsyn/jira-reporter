@@ -4,7 +4,7 @@ open System
 module HtmlFormatter = 
     let renderReport (items : seq<ReportItem>) = 
         let concat acc x = acc + "<br />" + x
-        let concat2 acc x = acc + "<br /><br />" + x
+        let concat2 acc x = acc + "<br /><br /><hr />" + x
         let makeLink text url = sprintf "<a href='%s'>%s</a>" url text
 
         let formatStatus status = 
@@ -26,7 +26,7 @@ module HtmlFormatter =
         let renderPatch (issue : JiraIssue) = 
             makeLink (issue.Key + " " + issue.Summary) issue.Url + " - " + getWaitTime issue
 
-        // TODO: Interleaving row background
+        // TODO: Combobox with names, store last one in cookie?
         let renderItem (item : ReportItem) = 
             let tasks = item.Tasks |> Seq.map renderIssue |> Seq.reduce concat
             let patches = 
