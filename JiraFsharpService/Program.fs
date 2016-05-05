@@ -1,5 +1,6 @@
 ﻿open JiraFsharpService
 open System
+open System.Net
 open System.Diagnostics
 open Suave
 open Suave.Successful
@@ -53,6 +54,8 @@ let main argv =
 
     Process.Start("http://localhost:3443") |> ignore
 
-    startWebServer defaultConfig getReportWeb
+    let suaveCfg = { defaultConfig with bindings = [ HttpBinding.mk HTTP IPAddress.Loopback 3443us ] }
+
+    startWebServer suaveCfg getReportWeb
 
     0 // return an integer exit code
