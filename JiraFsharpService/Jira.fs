@@ -36,11 +36,12 @@ module Jira =
         }
 
     let getIssues period = 
+        // TODO: Extract method with custom JQL
         let url = sprintf "%ssearch?jql=project=ignite AND updated>%s AND status not in (open)&maxResults=100&expand=changelog" ApiUrl period
         let onReviewUrl = sprintf "%ssearch?jql=project=ignite AND status = 'Patch Available'&maxResults=100&expand=changelog" ApiUrl
         
-        let jiraResult = Issues.Load url
-        let onReview = Issues.Load onReviewUrl
+        let jiraResult = Issues.Load url  // TODO: Load all pages
+        let onReview = Issues.Load onReviewUrl    // TODO: Load all pages
 
         let historyIsPatch (hist : Issues.History) = 
             hist.Items |> Seq.exists (fun x -> (x.Field = "status" && x.ToString.String = Some("Patch Available")))
