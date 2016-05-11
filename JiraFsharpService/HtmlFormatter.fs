@@ -28,7 +28,7 @@ module HtmlFormatter =
 
         // TODO: Combobox with names, store last one in cookie?
         let renderItem (item : ReportItem) = 
-            let tasks = item.Tasks |> Seq.map renderIssue |> Seq.reduce concat
+            let tasks = item.Tasks |> Seq.sortBy (fun x -> x.Status) |> Seq.map renderIssue |> Seq.reduce concat
             let patches = 
                 if item.Patches.Length > 0 
                     then item.Patches |> Seq.map renderPatch |> Seq.fold concat "<br/><br/><b>Pending Patches</b>" 
