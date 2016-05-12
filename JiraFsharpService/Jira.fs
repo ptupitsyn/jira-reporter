@@ -7,8 +7,6 @@ type JiraIssue = { Key : string; Summary : string; Status : string; Assignee : s
 type ReportItem = { Person : string; Tasks : JiraIssue[]; Patches : JiraIssue[] }
 
 module Jira = 
-
-
     [<Literal>]
     let JiraUrl = "https://issues.apache.org/jira/"
 
@@ -35,13 +33,26 @@ module Jira =
             Updated = this.Fields.Updated 
         }
 
+    let loadAllIssues (url : string) = 
+        let initial = Issues.Load url
+        let pageSize = initial.MaxResults
+        let pages = {1..(initial.Total / initial.MaxResults)}
+        let res = 
+            pages 
+                |> Seq.map (fun page -> Issues.Load (sprintf "%s&startAt=%i" url (page * pageSize)))
+                |> Seq.collect (fun x->x.Issues)
+                |> Seq.append initial.Issues
+                |> Array.ofSeq
+        assert (initial.Total = res.Length)  // check that all pages are loaded
+        res
+
     let getIssues period = 
         // TODO: Extract method with custom JQL
         let url = sprintf "%ssearch?jql=project=ignite AND updated>%s AND status not in (open)&maxResults=100&expand=changelog" ApiUrl period
         let onReviewUrl = sprintf "%ssearch?jql=project=ignite AND status = 'Patch Available'&maxResults=100&expand=changelog" ApiUrl
         
-        let jiraResult = Issues.Load url  // TODO: Load all pages
-        let onReview = Issues.Load onReviewUrl    // TODO: Load all pages
+        let jiraResult = loadAllIssues url
+        let onReview = loadAllIssues onReviewUrl
 
         let historyIsPatch (hist : Issues.History) = 
             hist.Items |> Seq.exists (fun x -> (x.Field = "status" && x.ToString.String = Some("Patch Available")))
@@ -50,7 +61,7 @@ module Jira =
             (issue.Changelog.Histories |> Seq.filter historyIsPatch |> Seq.last).Author.DisplayName
 
         let pendingPatches = 
-            onReview.Issues 
+            onReview 
                 |> Seq.groupBy findPatchAuthor
                 |> Map.ofSeq
 
@@ -59,9 +70,7 @@ module Jira =
                 | Some(reviews) -> reviews |> Seq.map createIssue |> Seq.sortBy (fun x -> x.Updated) |> Array.ofSeq
                 | _ -> [||]                
 
-        let issues = jiraResult.Issues
-
-        match issues with
+        match jiraResult with
             | [||] -> Seq.empty
             | x -> x 
                 |> Seq.collect (fun issue -> 
