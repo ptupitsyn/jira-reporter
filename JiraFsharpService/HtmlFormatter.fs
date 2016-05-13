@@ -14,11 +14,13 @@ module HtmlFormatter =
                     | "Closed" -> "Green"
                     | "In Progress" -> "DimGray"
                     | _ -> "Black"
-            sprintf "<span style='color:%s'>%s</span>" color status        
-
+            sprintf "<span style='color:%s'>%s</span>" color status
 
         let renderIssue (issue : JiraIssue) = 
-            makeLink (issue.Key + " " + issue.Summary) issue.Url + " - " + formatStatus issue.Status
+            match issue.Parent with
+                | Some(_) -> "&nbsp;&nbsp;○ "
+                | _ -> ""
+            + makeLink (issue.Key + " " + issue.Summary) issue.Url + " - " + formatStatus issue.Status
 
         let getWaitTime (issue : JiraIssue) = 
             sprintf "%s (%i days)" issue.Assignee (int (DateTime.Now - issue.Updated).TotalDays)
@@ -26,9 +28,25 @@ module HtmlFormatter =
         let renderPatch (issue : JiraIssue) = 
             makeLink (issue.Key + " " + issue.Summary) issue.Url + " - " + getWaitTime issue
 
+        let getSort (issue : JiraIssue) =
+            match issue.Parent with
+                | Some(parent) -> parent.Key
+                | _ -> ""
+            + issue.Key
+
         // TODO: Combobox with names, store last one in cookie?
         let renderItem (item : ReportItem) = 
-            let tasks = item.Tasks |> Seq.sortBy (fun x -> x.Status) |> Seq.map renderIssue |> Seq.reduce concat
+            // Include parent issues in main list if missing to display subtasks properly
+            let taskMissing t = 
+                item.Tasks |> Seq.exists (fun x -> x.Key = t.Key) |> not
+
+            let parents = item.Tasks 
+                            |> Seq.map (fun x -> x.Parent) 
+                            |> Seq.choose id
+                            |> Seq.filter taskMissing
+                            |> Seq.distinct
+
+            let tasks = parents |> Seq.append item.Tasks |> Seq.sortBy getSort |> Seq.map renderIssue |> Seq.reduce concat
             let patches = 
                 if item.Patches.Length > 0 
                     then item.Patches |> Seq.map renderPatch |> Seq.fold concat "<br/><br/><b>Pending Patches</b>" 

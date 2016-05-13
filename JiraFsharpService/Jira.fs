@@ -3,7 +3,7 @@
 open System
 open FSharp.Data
 
-type JiraIssue = { Key : string; Summary : string; Status : string; Assignee : string; Url : string; Updated : DateTime  }
+type JiraIssue = { Key : string; Summary : string; Status : string; Assignee : string; Url : string; Updated : DateTime; Parent : JiraIssue option  }
 type ReportItem = { Person : string; Tasks : JiraIssue[]; Patches : JiraIssue[] }
 
 module Jira = 
@@ -23,6 +23,17 @@ module Jira =
                 | Some(ass) -> ass.DisplayName
                 | _ -> "Unassigned"
 
+    let createParentIssue (this : Issues.Parent) =
+        {
+            Key = this.Key;
+            Summary = this.Fields.Summary;
+            Status = this.Fields.Status.Name;
+            Assignee = "-";
+            Url = JiraUrl + "browse/" + this.Key;
+            Updated = DateTime.Now;
+            Parent =  None;
+        }
+    
     let createIssue (this : Issues.Issue) =
         { 
             Key = this.Key; 
@@ -30,7 +41,10 @@ module Jira =
             Status = this.Fields.Status.Name; 
             Assignee = getAssignee this; 
             Url = JiraUrl + "browse/" + this.Key; 
-            Updated = this.Fields.Updated 
+            Updated = this.Fields.Updated;
+            Parent = match this.Fields.Parent with
+                            | Some(parent) -> Some(createParentIssue parent)
+                            | _ -> None
         }
 
     let loadAllIssues (url : string) = 
