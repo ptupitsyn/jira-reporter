@@ -35,7 +35,7 @@ let main argv =
         match lastUpdated with
             | x when x > DateTime.Now.AddSeconds(-5.0) -> cachedReport
             | _ -> 
-                let (issues, elapsed) = measureTime(fun() -> Jira.getIssues "-12h")
+                let (issues, elapsed) = measureTime(fun() -> Jira.getIgniteIssues "-12h")
                 lastUpdated <- DateTime.Now
 
                 let reportBody = HtmlFormatter.renderReport issues

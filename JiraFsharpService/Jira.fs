@@ -17,24 +17,24 @@ module Jira =
     let SampleUrl = ApiUrl + "search?jql=project=ignite&maxResults=10&expand=changelog"
 
     type Issues = JsonProvider<SampleUrl>
-
-    let getAssignee (issue : Issues.Issue) = 
+    
+    let createIssue (this : Issues.Issue) =
+        let getAssignee (issue : Issues.Issue) = 
             match issue.Fields.Assignee with
                 | Some(ass) -> ass.DisplayName
                 | _ -> "Unassigned"
 
-    let createParentIssue (this : Issues.Parent) =
-        {
-            Key = this.Key;
-            Summary = this.Fields.Summary;
-            Status = this.Fields.Status.Name;
-            Assignee = "-";
-            Url = JiraUrl + "browse/" + this.Key;
-            Updated = DateTime.Now;
-            Parent =  None;
-        }
-    
-    let createIssue (this : Issues.Issue) =
+        let createParentIssue (this : Issues.Parent) =
+            {
+                Key = this.Key;
+                Summary = this.Fields.Summary;
+                Status = this.Fields.Status.Name;
+                Assignee = "-";
+                Url = JiraUrl + "browse/" + this.Key;
+                Updated = DateTime.Now;
+                Parent =  None;
+            }
+
         { 
             Key = this.Key; 
             Summary = this.Fields.Summary; 
@@ -60,9 +60,8 @@ module Jira =
         assert (initial.Total = res.Length)  // check that all pages are loaded
         res
 
-    let getIssues period = 
-        // TODO: Extract method with custom JQL
-        let url = sprintf "%ssearch?jql=project=ignite AND updated>%s AND status not in (open)&maxResults=100&expand=changelog" ApiUrl period
+    let getIgniteIssues period = 
+        let url = sprintf "%ssearch?jql=project=ignite AND updated>%s AND status != open&maxResults=100&expand=changelog" ApiUrl period
         let onReviewUrl = sprintf "%ssearch?jql=project=ignite AND status = 'Patch Available'&maxResults=100&expand=changelog" ApiUrl
         
         let jiraResult = loadAllIssues url
