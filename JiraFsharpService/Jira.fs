@@ -143,6 +143,18 @@ module Jira =
                                 Patches = [||]
                             })
 
+    let getCombinedIssues period = 
+        let ignite = getIgniteIssues period
+        let gg = getGgIssues period
 
+        ignite |> Seq.append gg 
+            |> Seq.groupBy (fun i -> i.Person)
+            |> Seq.map (fun g -> 
+                        {
+                            Person = fst g;
+                            Tasks = (snd g) |> Seq.collect (fun x -> x.Tasks) |> Array.ofSeq;
+                            Patches = (snd g) |> Seq.collect (fun x -> x.Patches) |> Array.ofSeq;
+                        })
+            |> Seq.sortBy (fun r -> r.Person)
 
     let getTitle() = DateTime.Now |> (fun dt -> (sprintf "DAILY STATUS (%i/%i/%i)" dt.Month dt.Day dt.Year))

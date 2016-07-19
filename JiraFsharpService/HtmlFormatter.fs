@@ -10,8 +10,9 @@ module HtmlFormatter =
         let formatStatus status = 
             let color = 
                 match status with
-                    | "Patch Available" -> "Orange"
-                    | "Closed" -> "Green"
+                    | "Patch Available" | "Review" -> "Orange"
+                    | "Declined" -> "Red"
+                    | "Closed" | "Resolved" -> "Green"
                     | "In Progress" -> "DimGray"
                     | _ -> "Black"
             sprintf "<span style='color:%s'>%s</span>" color status
