@@ -3,6 +3,7 @@
 open System
 open System.IO
 open System.Text
+open System.Text.RegularExpressions
 open System.Net
 open FSharp.Data
 
@@ -43,7 +44,7 @@ module Jira =
             Summary = this.Fields.Summary; 
             Status = this.Fields.Status.Name; 
             Assignee = getAssignee this; 
-            Url = JiraUrl + "browse/" + this.Key; 
+            Url = Regex.Match(this.Self, "(.*?)rest/api").Groups.[1].Value + "browse/" + this.Key; 
             Updated = this.Fields.Updated;
             Parent = match this.Fields.Parent with
                             | Some(parent) -> Some(createParentIssue parent)
