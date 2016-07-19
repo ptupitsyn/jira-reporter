@@ -1,6 +1,9 @@
 ﻿namespace JiraFsharpService
 
 open System
+open System.IO
+open System.Text
+open System.Net
 open FSharp.Data
 
 type JiraIssue = { Key : string; Summary : string; Status : string; Assignee : string; Url : string; Updated : DateTime; Parent : JiraIssue option  }
@@ -101,5 +104,45 @@ module Jira =
                                 Tasks = issuePairs |> Seq.map (snd>>createIssue) |> Array.ofSeq; 
                                 Patches = getPatches person
                             })
+
+    let getEncodedCreds() = 
+        let creds = File.ReadAllLines "c:\\jira.jira"
+        let mergedCreds = sprintf "%s:%s" creds.[0] creds.[1]
+        let byteCreds = Encoding.UTF8.GetBytes mergedCreds
+        Convert.ToBase64String byteCreds
+
+    let getGgIssuesRaw (period : string) = 
+        let wc = new WebClient()
+        let creds = "Basic " + getEncodedCreds()
+        wc.Headers.Add(HttpRequestHeader.Authorization, creds)
+        let url = sprintf "https://ggsystems.atlassian.net/rest/api/2/search?jql=project=gg AND updated>%s AND status != open&maxResults=100&expand=changelog" period
+        wc.DownloadString url
+
+    let getGgIssues period = 
+        let json = getGgIssuesRaw period
+
+        // TODO: Pages
+        let jiraResult = (Issues.Parse json).Issues
+
+        match jiraResult with
+            | [||] -> Seq.empty
+            | x -> x 
+                |> Seq.collect (fun issue -> 
+                    issue.Changelog.Histories 
+                        |> Seq.where (fun hist -> (System.DateTime.Now - hist.Created).Hours < 12)
+                        |> Seq.map (fun hist -> hist.Author.DisplayName)
+                        |> Seq.distinct
+                        |> Seq.map (fun author -> (author, issue))
+                    )
+                |> Seq.groupBy (fun (person, _) -> person)
+                |> Seq.sortBy (fun (person, _) -> person)
+                |> Seq.map (fun (person, issuePairs) -> 
+                            { 
+                                Person = person; 
+                                Tasks = issuePairs |> Seq.map (snd>>createIssue) |> Array.ofSeq; 
+                                Patches = [||]
+                            })
+
+
 
     let getTitle() = DateTime.Now |> (fun dt -> (sprintf "DAILY STATUS (%i/%i/%i)" dt.Month dt.Day dt.Year))
