@@ -36,7 +36,8 @@ module Reporter =
 
                 let reportBody = HtmlFormatter.renderReport issues
 
-                cachedReport <- sprintf "%s%s<br/><br/><hr/><span style='font-size:small'>Last updated at %A in %A%s</span>" 
+                cachedReport <- sprintf "%s%s<br/><br/><hr/><span style='font-size:small'>Last updated at %A in %A%s. 
+                    <br/><a href='https://github.com/ptupitsyn/jira-reporter'>github.com/ptupitsyn/jira-reporter</a></span>" 
                     header reportBody lastUpdated elapsed footer
                 
                 cachedReport
