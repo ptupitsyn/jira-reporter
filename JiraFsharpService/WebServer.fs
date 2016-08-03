@@ -11,7 +11,7 @@ module WebServer =
                 let html = Reporter.getReportSynced()
                 OK html ctx
 
-        let suaveCfg = { defaultConfig with bindings = [ HttpBinding.mk HTTP IPAddress.Loopback 3443us ] }
+        let suaveCfg = { defaultConfig with bindings = [ HttpBinding.mk HTTP IPAddress.Any 3443us ] }
 
         let startingServer, shutdownServer = startWebServerAsync suaveCfg getReportWeb
 
