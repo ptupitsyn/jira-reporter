@@ -1,11 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JiraReportService", "JiraReportService.csproj", "{ED57FA23-B068-483E-ABB3-F1A7DEC99FE0}"
-EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "JiraFsharpService", "..\JiraFsharpService\JiraFsharpService.fsproj", "{4CC6765A-88E8-424D-9126-6F52B6E7CDAC}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "JiraFsharpService", "JiraFsharpService\JiraFsharpService.fsproj", "{4CC6765A-88E8-424D-9126-6F52B6E7CDAC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,10 +11,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{ED57FA23-B068-483E-ABB3-F1A7DEC99FE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{ED57FA23-B068-483E-ABB3-F1A7DEC99FE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{ED57FA23-B068-483E-ABB3-F1A7DEC99FE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{ED57FA23-B068-483E-ABB3-F1A7DEC99FE0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4CC6765A-88E8-424D-9126-6F52B6E7CDAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4CC6765A-88E8-424D-9126-6F52B6E7CDAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4CC6765A-88E8-424D-9126-6F52B6E7CDAC}.Release|Any CPU.ActiveCfg = Release|Any CPU

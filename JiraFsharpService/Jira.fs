@@ -5,6 +5,8 @@ open System.IO
 open System.Text
 open System.Text.RegularExpressions
 open System.Net
+open System.Threading
+open System.Threading.Tasks
 open FSharp.Data
 
 type JiraIssue = { Key : string; Summary : string; Status : string; Assignee : string; Url : string; Updated : DateTime; Parent : JiraIssue option  }
@@ -145,8 +147,13 @@ module Jira =
                             })
 
     let getCombinedIssues period = 
-        let ignite = getIgniteIssues period
-        let gg = getGgIssues period
+        let igniteTask = Task.Factory.StartNew(fun () -> getIgniteIssues period)
+        let ggTask = Task.Factory.StartNew(fun () -> getGgIssues period)
+
+        Task.WaitAll(igniteTask, ggTask)
+
+        let ignite = igniteTask.Result
+        let gg = ggTask.Result
 
         ignite |> Seq.append gg 
             |> Seq.groupBy (fun i -> i.Person)
