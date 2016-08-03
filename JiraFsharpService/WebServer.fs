@@ -13,4 +13,6 @@ module WebServer =
 
         let suaveCfg = { defaultConfig with bindings = [ HttpBinding.mk HTTP IPAddress.Loopback 3443us ] }
 
-        startWebServer suaveCfg getReportWeb
+        let startingServer, shutdownServer = startWebServerAsync suaveCfg getReportWeb
+
+        Async.Start(shutdownServer)

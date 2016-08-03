@@ -6,4 +6,4 @@ type public WindowsService() =
     inherit ServiceBase(ServiceName = "JiraFSharpService")
 
     override x.OnStart(args) =
-        WebServer.runWebServer()
+        WebServer.runWebServer() |> ignore
