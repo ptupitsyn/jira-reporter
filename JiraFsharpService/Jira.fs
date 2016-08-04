@@ -18,9 +18,12 @@ module Jira =
 
     [<Literal>]
     let ApiUrl = JiraUrl + "rest/api/2/"
+
+    [<Literal>]
+    let ExpandParams = "&expand=changelog&fields=summary,status,comment,assignee,parent,updated"
     
     [<Literal>]
-    let SampleUrl = ApiUrl + "search?jql=project=ignite&maxResults=10&expand=changelog"
+    let SampleUrl = ApiUrl + "search?jql=project=ignite&maxResults=10" + ExpandParams
 
     type Issues = JsonProvider<SampleUrl>
     
@@ -67,8 +70,8 @@ module Jira =
         res
 
     let getIgniteIssues period = 
-        let url = sprintf "%ssearch?jql=project=ignite AND updated>%s AND status != open&maxResults=100&expand=changelog" ApiUrl period
-        let onReviewUrl = sprintf "%ssearch?jql=project=ignite AND status = 'Patch Available'&maxResults=100&expand=changelog" ApiUrl
+        let url = sprintf "%ssearch?jql=project=ignite AND updated>%s AND status != open&maxResults=100%s" ApiUrl period ExpandParams
+        let onReviewUrl = sprintf "%ssearch?jql=project=ignite AND status = 'Patch Available'&maxResults=100%s" ApiUrl ExpandParams
         
         let jiraResult = loadAllIssues url
         let onReview = loadAllIssues onReviewUrl
@@ -118,7 +121,7 @@ module Jira =
         let wc = new WebClient()
         let creds = "Basic " + getEncodedCreds()
         wc.Headers.Add(HttpRequestHeader.Authorization, creds)
-        let url = sprintf "https://ggsystems.atlassian.net/rest/api/2/search?jql=project=gg AND updated>%s AND status != open&maxResults=100&expand=changelog" period
+        let url = sprintf "https://ggsystems.atlassian.net/rest/api/2/search?jql=project=gg AND updated>%s AND status != open&maxResults=100%s" period ExpandParams
         wc.DownloadString url
 
     let getGgIssues period = 
