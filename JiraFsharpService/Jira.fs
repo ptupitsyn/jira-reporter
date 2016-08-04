@@ -80,6 +80,17 @@ module Jira =
         assert (initial.Total = res.Length)  // check that all pages are loaded
         res
 
+    let getIssueAuthors (issue: Issues.Issue) = 
+        let hist = issue.Changelog.Histories 
+                        |> Seq.where (fun hist -> (System.DateTime.Now - hist.Created).TotalHours < 12.0) // TODO: period is ignored!
+                        |> Seq.map (fun hist -> hist.Author.DisplayName)
+
+        let comm = issue.Fields.Comment.Comments
+                        |> Seq.where (fun com -> (System.DateTime.Now - com.Updated).TotalHours < 12.0)
+                        |> Seq.map (fun com -> com.Author.DisplayName)
+
+        [hist; comm] |> Seq.concat |> Seq.distinct
+
     let getIgniteIssues period = 
         let url = sprintf "%ssearch?jql=project=ignite AND updated>%s AND status != open&maxResults=100%s" ApiUrl period ExpandParams
         let onReviewUrl = sprintf "%ssearch?jql=project=ignite AND status = 'Patch Available'&maxResults=100%s" ApiUrl ExpandParams
@@ -106,13 +117,7 @@ module Jira =
         match jiraResult with
             | [||] -> Seq.empty
             | x -> x 
-                |> Seq.collect (fun issue -> 
-                    issue.Changelog.Histories 
-                        |> Seq.where (fun hist -> (System.DateTime.Now - hist.Created).TotalHours < 12.0)  // TODO: period is ignored!
-                        |> Seq.map (fun hist -> hist.Author.DisplayName)
-                        |> Seq.distinct
-                        |> Seq.map (fun author -> (author, issue))
-                    )
+                |> Seq.collect (fun issue -> getIssueAuthors issue |> Seq.map (fun author -> (author, issue)))
                 |> Seq.groupBy (fun (person, _) -> person)
                 |> Seq.sortBy (fun (person, _) -> person)
                 |> Seq.map (fun (person, issuePairs) -> 
@@ -132,7 +137,7 @@ module Jira =
         let wc = new WebClient()
         let creds = "Basic " + getEncodedCreds()
         wc.Headers.Add(HttpRequestHeader.Authorization, creds)
-        let url = sprintf "https://ggsystems.atlassian.net/rest/api/2/search?jql=project=gg AND updated>%s AND status != open&maxResults=100%s" period ExpandParams
+        let url = sprintf "https://ggsystems.atlassian.net/rest/api/2/search?jql=project=gg AND updated>%s AND status != open&maxResults=1000%s" period ExpandParams
         wc.DownloadString url
 
     let getGgIssues period = 
@@ -144,13 +149,7 @@ module Jira =
         match jiraResult with
             | [||] -> Seq.empty
             | x -> x 
-                |> Seq.collect (fun issue -> 
-                    issue.Changelog.Histories 
-                        |> Seq.where (fun hist -> (System.DateTime.Now - hist.Created).Hours < 12)
-                        |> Seq.map (fun hist -> hist.Author.DisplayName)
-                        |> Seq.distinct
-                        |> Seq.map (fun author -> (author, issue))
-                    )
+                |> Seq.collect (fun issue -> getIssueAuthors issue |> Seq.map (fun author -> (author, issue)))
                 |> Seq.groupBy (fun (person, _) -> person)
                 |> Seq.sortBy (fun (person, _) -> person)
                 |> Seq.map (fun (person, issuePairs) -> 
