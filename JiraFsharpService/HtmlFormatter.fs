@@ -17,11 +17,18 @@ module HtmlFormatter =
                     | _ -> "Black"
             sprintf "<span style='color:%s'>%s</span>" color status
 
+        let renderComment (issue : JiraIssue) = 
+            match issue.Comment with
+                | "" -> ""
+                | x -> "<br />&nbsp;&nbsp;&nbsp;&nbsp;<i>" + x + "</i>"
+
         let renderIssue (issue : JiraIssue) = 
             match issue.Parent with
                 | Some(_) -> "&nbsp;&nbsp;○ "
                 | _ -> ""
-            + makeLink (issue.Key + " " + issue.Summary) issue.Url + " - " + formatStatus issue.Status
+            + makeLink (issue.Key + " " + issue.Summary) issue.Url + " - " + formatStatus issue.Status 
+            + renderComment issue
+            + "<br />"
 
         let getWaitTime (issue : JiraIssue) = 
             sprintf "%s (%i days)" issue.Assignee (int (DateTime.Now - issue.Updated).TotalDays)
