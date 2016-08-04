@@ -9,7 +9,8 @@ open System.Threading
 open System.Threading.Tasks
 open FSharp.Data
 
-type JiraIssue = { Key : string; Summary : string; Status : string; Assignee : string; Url : string; Updated : DateTime; Parent : JiraIssue option; Comment : string  }
+type JiraComment = { Body : string; Author : string }
+type JiraIssue = { Key : string; Summary : string; Status : string; Assignee : string; Url : string; Updated : DateTime; Parent : JiraIssue option; Comment : JiraComment option  }
 type ReportItem = { Person : string; Tasks : JiraIssue[]; Patches : JiraIssue[] }
 
 module Jira = 
@@ -35,9 +36,11 @@ module Jira =
 
         let getLastComment (issue : Issues.Issue) = 
             match issue.Fields.Comment.Comments with
-                | [||] -> ""
+                | [||] -> None
                 | arr -> arr |> Seq.last |> 
-                            fun x -> if (x.Created - DateTime.Now).TotalHours < 12.0 then x.Body else ""
+                            fun x -> if (x.Created - DateTime.Now).TotalHours < 12.0 
+                                        then Some ({Body = x.Body; Author = x.Author.DisplayName})
+                                        else None
 
         let createParentIssue (this : Issues.Parent) =
             {
@@ -48,7 +51,7 @@ module Jira =
                 Url = JiraUrl + "browse/" + this.Key;
                 Updated = DateTime.Now;
                 Parent =  None;
-                Comment = ""
+                Comment = None;
             }
 
         { 

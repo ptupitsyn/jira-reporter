@@ -19,8 +19,8 @@ module HtmlFormatter =
 
         let renderComment (issue : JiraIssue) = 
             match issue.Comment with
-                | "" -> ""
-                | x -> "<br />&nbsp;&nbsp;&nbsp;&nbsp;<i>" + x + "</i>"
+                | Some(x) -> sprintf "<br />&nbsp;&nbsp;&nbsp;&nbsp;<i>%s: %s</i>" x.Author x.Body
+                | _ -> ""
 
         let renderIssue (issue : JiraIssue) = 
             match issue.Parent with
