@@ -38,7 +38,7 @@ module Jira =
             match issue.Fields.Comment.Comments with
                 | [||] -> None
                 | arr -> arr |> Seq.last |> 
-                            fun x -> if (x.Created - DateTime.Now).TotalHours < 12.0 
+                            fun x -> if (DateTime.Now - x.Created).TotalHours < 12.0 
                                         then Some ({Body = x.Body; Author = x.Author.DisplayName})
                                         else None
 
