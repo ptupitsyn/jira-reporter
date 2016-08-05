@@ -91,6 +91,21 @@ module Jira =
 
         [hist; comm] |> Seq.concat |> Seq.distinct
 
+    let transformRawIssues jiraResult getPatches = 
+        match jiraResult with
+            | [||] -> Seq.empty
+            | x -> x 
+                |> Seq.collect (fun issue -> getIssueAuthors issue |> Seq.map (fun author -> (author, issue)))
+                |> Seq.groupBy (fun (person, _) -> person)
+                |> Seq.sortBy (fun (person, _) -> person)
+                |> Seq.map (fun (person, issuePairs) -> 
+                            { 
+                                Person = person; 
+                                Tasks = issuePairs |> Seq.map (snd>>createIssue) |> Array.ofSeq; 
+                                Patches = getPatches person
+                            })
+        
+
     let getIgniteIssues period = 
         let url = sprintf "%ssearch?jql=project=ignite AND updated>%s AND status != open&maxResults=100%s" ApiUrl period ExpandParams
         let onReviewUrl = sprintf "%ssearch?jql=project=ignite AND status = 'Patch Available'&maxResults=100%s" ApiUrl ExpandParams
@@ -114,24 +129,15 @@ module Jira =
                 | Some(reviews) -> reviews |> Seq.map createIssue |> Seq.sortBy (fun x -> x.Updated) |> Array.ofSeq
                 | _ -> [||]                
 
-        match jiraResult with
-            | [||] -> Seq.empty
-            | x -> x 
-                |> Seq.collect (fun issue -> getIssueAuthors issue |> Seq.map (fun author -> (author, issue)))
-                |> Seq.groupBy (fun (person, _) -> person)
-                |> Seq.sortBy (fun (person, _) -> person)
-                |> Seq.map (fun (person, issuePairs) -> 
-                            { 
-                                Person = person; 
-                                Tasks = issuePairs |> Seq.map (snd>>createIssue) |> Array.ofSeq; 
-                                Patches = getPatches person
-                            })
+        transformRawIssues jiraResult getPatches
+
 
     let getEncodedCreds() = 
         let creds = File.ReadAllLines "c:\\jira.jira"
         let mergedCreds = sprintf "%s:%s" creds.[0] creds.[1]
         let byteCreds = Encoding.UTF8.GetBytes mergedCreds
         Convert.ToBase64String byteCreds
+
 
     let getGgIssuesRaw (period : string) = 
         let wc = new WebClient()
@@ -140,24 +146,15 @@ module Jira =
         let url = sprintf "https://ggsystems.atlassian.net/rest/api/2/search?jql=project=gg AND updated>%s AND status != open&maxResults=1000%s" period ExpandParams
         wc.DownloadString url
 
+
     let getGgIssues period = 
         let json = getGgIssuesRaw period
 
         // TODO: Pages
         let jiraResult = (Issues.Parse json).Issues
 
-        match jiraResult with
-            | [||] -> Seq.empty
-            | x -> x 
-                |> Seq.collect (fun issue -> getIssueAuthors issue |> Seq.map (fun author -> (author, issue)))
-                |> Seq.groupBy (fun (person, _) -> person)
-                |> Seq.sortBy (fun (person, _) -> person)
-                |> Seq.map (fun (person, issuePairs) -> 
-                            { 
-                                Person = person; 
-                                Tasks = issuePairs |> Seq.map (snd>>createIssue) |> Array.ofSeq; 
-                                Patches = [||]
-                            })
+        transformRawIssues jiraResult (fun _ -> [||])
+
 
     let getCombinedIssues period = 
         let igniteTask = Task.Factory.StartNew(fun () -> getIgniteIssues period)
@@ -175,5 +172,6 @@ module Jira =
                             Patches = (snd g) |> Seq.collect (fun x -> x.Patches) |> Array.ofSeq;
                         })
             |> Seq.sortBy (fun r -> r.Person)
+
 
     let getTitle() = DateTime.Now |> (fun dt -> (sprintf "DAILY STATUS (%i/%i/%i)" dt.Month dt.Day dt.Year))
