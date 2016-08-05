@@ -165,10 +165,8 @@ module Jira =
 
         Task.WaitAll(igniteTask, ggTask)
 
-        let ignite = igniteTask.Result
-        let gg = ggTask.Result
-
-        ignite |> Seq.append gg 
+        [igniteTask.Result; ggTask.Result] 
+            |> Seq.concat
             |> Seq.groupBy (fun i -> i.Person)
             |> Seq.map (fun g -> 
                         {
