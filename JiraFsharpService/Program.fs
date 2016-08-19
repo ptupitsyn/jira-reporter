@@ -7,11 +7,11 @@ open System.Threading;
 let main argv = 
     
     // Uncomment to run in console
-    (*
+    //(*
     Process.Start("http://localhost:3443") |> ignore
     WebServer.runWebServer()
     Thread.Sleep(Timeout.Infinite)
-    *)
+    //*)
 
     ServiceBase.Run [| new WindowsService() :> ServiceBase |]
 

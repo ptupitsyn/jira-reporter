@@ -35,14 +35,11 @@ module Jira =
                 | _ -> "Unassigned"
 
         let getLastComment (issue : Issues.Issue) = 
-            match issue.Fields.Comment.Comments with
-                | [||] -> None
-                | arr -> arr 
-                            |> Seq.where (fun x -> x.Author.Name <> "ASF GitHub Bot")
-                            |> Seq.last 
-                            |> fun x -> if (DateTime.Now - x.Created).TotalHours < 12.0 
-                                        then Some ({Body = x.Body; Author = x.Author.DisplayName})
-                                        else None
+            issue.Fields.Comment.Comments
+                |> Seq.where (fun x -> x.Author.DisplayName <> "ASF GitHub Bot")
+                |> Seq.where (fun x -> (DateTime.Now - x.Created).TotalHours < 12.0)
+                |> Seq.map (fun x -> {Body = x.Body; Author = x.Author.DisplayName})
+                |> Seq.tryLast
 
         let createParentIssue (this : Issues.Parent) =
             {
