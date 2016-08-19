@@ -15,7 +15,8 @@ module HtmlFormatter =
                     | "Closed" | "Resolved" -> "Green"
                     | "In Progress" -> "DimGray"
                     | _ -> "Black"
-            sprintf "<span style='color:%s'>%s</span>" color status
+            let eta = if status = "In Progress" then " (ETA: 1d)" else ""
+            sprintf "<span style='color:%s'>%s%s</span>" color status eta
 
         let renderComment (issue : JiraIssue) = 
             match issue.Comment with
