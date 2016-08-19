@@ -84,6 +84,7 @@ module Jira =
 
     let getIssueAuthors (issue: Issues.Issue) = 
         let hist = issue.Changelog.Histories 
+                        |> Seq.where (fun hist -> hist.Items  |> Seq.exists (fun x -> x.Field = "status"))  // Only status changes get into the report
                         |> Seq.where (fun hist -> (System.DateTime.Now - hist.Created).TotalHours < 12.0) // TODO: period is ignored!
                         |> Seq.map (fun hist -> hist.Author.DisplayName)
 
@@ -145,7 +146,7 @@ module Jira =
         let wc = new WebClient()
         let creds = "Basic " + getEncodedCreds()
         wc.Headers.Add(HttpRequestHeader.Authorization, creds)
-        let url = sprintf "https://ggsystems.atlassian.net/rest/api/2/search?jql=project=gg AND updated>%s AND status != open&maxResults=1000%s" period ExpandParams
+        let url = sprintf "https://ggsystems.atlassian.net/rest/api/2/search?jql=project=gg AND updated>%s AND status not in (open, 'newly created')&maxResults=1000%s" period ExpandParams
         wc.DownloadString url
 
 
