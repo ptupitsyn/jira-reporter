@@ -7,8 +7,16 @@ module WebServer =
 
     let runWebServer() =
         let getReportWeb : WebPart = 
-            fun (ctx : HttpContext) -> 
-                let html = Reporter.getReportSynced()
+            fun (ctx : HttpContext) ->                 
+                let showComments = match ctx.request.queryParam "showComments" with
+                                        | Choice1Of2 x -> x = "true"
+                                        | _ -> false
+
+                let personFilter = match ctx.request.queryParam "personFilter" with
+                                        | Choice1Of2 x -> x
+                                        | _ -> ""
+                
+                let html = Reporter.getReportSynced showComments personFilter                
                 OK html ctx
 
         let suaveCfg = { defaultConfig with bindings = [ HttpBinding.mk HTTP IPAddress.Any 3443us ] }

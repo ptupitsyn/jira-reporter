@@ -27,14 +27,14 @@ module Reporter =
     let mutable cachedReport = ""
     let mutable lastUpdated = DateTime.MinValue
 
-    let getReport() =                 
+    let getReport (showComments : bool) (personFilter : string) =
         match lastUpdated with
             | x when x > DateTime.Now.AddSeconds(-5.0) -> cachedReport
             | _ -> 
                 let (issues, elapsed) = measureTime(fun() -> Jira.getCombinedIssues "-12h")
                 lastUpdated <- DateTime.Now
 
-                let reportBody = HtmlFormatter.renderReport issues
+                let reportBody = HtmlFormatter.renderReport issues showComments personFilter
 
                 cachedReport <- sprintf "%s%s<br/><br/><hr/><span style='font-size:small'>Last updated at %A in %A%s. 
                     <br/><a href='https://github.com/ptupitsyn/jira-reporter'>github.com/ptupitsyn/jira-reporter</a></span>" 
@@ -42,5 +42,6 @@ module Reporter =
                 
                 cachedReport
 
-    let getReportSynced() = lock monitor getReport
-
+    let getReportSynced (showComments : bool) (personFilter : string) = 
+        let getRep() = getReport showComments personFilter
+        lock monitor getRep

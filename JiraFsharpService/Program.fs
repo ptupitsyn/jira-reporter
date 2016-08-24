@@ -8,7 +8,7 @@ let main argv =
     
     // Uncomment to run in console
     (*
-    Process.Start("http://localhost:3443") |> ignore
+    Process.Start("http://localhost:3443/?showComments=false&personFilter=tupitsyn") |> ignore
     WebServer.runWebServer()
     Thread.Sleep(Timeout.Infinite)
     *)

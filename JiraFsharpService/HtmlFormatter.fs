@@ -2,7 +2,7 @@
 open System
 
 module HtmlFormatter = 
-    let renderReport (items : seq<ReportItem>) = 
+    let renderReport (items : seq<ReportItem>) (showComments : bool) (personFilter : string) = 
         let concat acc x = acc + "<br />" + x
         let concat2 acc x = acc + "<br /><br /><hr />" + x
         let makeLink text url = sprintf "<a href='%s'>%s</a>" url text
@@ -28,7 +28,7 @@ module HtmlFormatter =
                 | Some(_) -> "&nbsp;&nbsp;○ "
                 | _ -> ""
             + makeLink (issue.Key + " " + issue.Summary) issue.Url + " - " + formatStatus issue.Status 
-            + renderComment issue
+            + if showComments then renderComment issue else ""
             + "<br />"
 
         let getWaitTime (issue : JiraIssue) = 
@@ -62,6 +62,12 @@ module HtmlFormatter =
                     else ""
             sprintf "<h2>%s</h2>%s%s" item.Person tasks patches
 
-        let report = items |> Seq.map renderItem |> Seq.reduce concat2
+        let filteredItems = 
+            if personFilter = "" 
+                then items 
+                else items |> Seq.where (fun x -> x.Person.IndexOf(personFilter, StringComparison.OrdinalIgnoreCase) > 0)
+
+        let report = if (Seq.isEmpty filteredItems) then "" else filteredItems |> Seq.map renderItem |> Seq.reduce concat2
+        
         sprintf "<h1>%s</h1>%s" (Jira.getTitle()) report
 
