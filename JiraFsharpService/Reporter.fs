@@ -42,7 +42,9 @@ module Reporter =
         let issues = getIssues()
         let reportBody = HtmlFormatter.renderReport issues showComments personFilter
 
-        sprintf "%s%s<br/><br/><hr/><span style='font-size:small'>Last updated at %A in %A%s. 
+        sprintf "%s%s<br/><br/><hr/><span style='font-size:small'>
+            Use showComments=true&personFilter=name in URL.
+            <br/>Last updated at %A in %A%s. 
             <br/><a href='https://github.com/ptupitsyn/jira-reporter'>github.com/ptupitsyn/jira-reporter</a></span>" 
             header reportBody lastUpdated updateDuration footer
 
