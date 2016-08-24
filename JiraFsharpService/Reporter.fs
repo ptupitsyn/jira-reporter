@@ -24,23 +24,27 @@ module Reporter =
     let footer = "</body></html>"
 
     let monitor = new Object()
-    let mutable cachedReport = ""
+    let mutable cachedReport : seq<ReportItem> = Seq.empty
     let mutable lastUpdated = DateTime.MinValue
+    let mutable updateDuration = TimeSpan.Zero
 
-    let getReport (showComments : bool) (personFilter : string) =
+    let getIssues() = 
         match lastUpdated with
-            | x when x > DateTime.Now.AddSeconds(-5.0) -> cachedReport
+            | x when x > DateTime.Now.AddSeconds(-9.0) -> cachedReport
             | _ -> 
                 let (issues, elapsed) = measureTime(fun() -> Jira.getCombinedIssues "-12h")
                 lastUpdated <- DateTime.Now
-
-                let reportBody = HtmlFormatter.renderReport issues showComments personFilter
-
-                cachedReport <- sprintf "%s%s<br/><br/><hr/><span style='font-size:small'>Last updated at %A in %A%s. 
-                    <br/><a href='https://github.com/ptupitsyn/jira-reporter'>github.com/ptupitsyn/jira-reporter</a></span>" 
-                    header reportBody lastUpdated elapsed footer
-                
+                updateDuration <- elapsed
+                cachedReport <- issues
                 cachedReport
+
+    let getReport (showComments : bool) (personFilter : string) =
+        let issues = getIssues()
+        let reportBody = HtmlFormatter.renderReport issues showComments personFilter
+
+        sprintf "%s%s<br/><br/><hr/><span style='font-size:small'>Last updated at %A in %A%s. 
+            <br/><a href='https://github.com/ptupitsyn/jira-reporter'>github.com/ptupitsyn/jira-reporter</a></span>" 
+            header reportBody lastUpdated updateDuration footer
 
     let getReportSynced (showComments : bool) (personFilter : string) = 
         let getRep() = getReport showComments personFilter
