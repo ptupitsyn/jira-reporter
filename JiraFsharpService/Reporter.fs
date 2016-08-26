@@ -12,14 +12,16 @@ module Reporter =
         (res, elapsed)
 
     // TODO: Extract HTML logic to a separate module
-    let header = """ 
+    let header = sprintf """ 
         <html>
             <head>
                 <meta charset="utf-8" />
-                <title>JIRA Report</title>
+                <title>%s</title>
                 <style type="text/css">body{margin:20px 40px}</style>
             </head>
-            <body> """
+            <body> 
+            <script>(function() { var spe = new SpeechSynthesisUtterance(); spe.text = "%s"; window.speechSynthesis.speak(spe); })(); 
+            </script> """ (Jira.getTitle()) (Jira.getTitle())
 
     let footer = "</body></html>"
 
