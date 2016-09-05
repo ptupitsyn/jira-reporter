@@ -30,22 +30,22 @@ module Reporter =
     let mutable lastUpdated = DateTime.MinValue
     let mutable updateDuration = TimeSpan.Zero
 
-    let getIssues() = 
+    let getIssues includeAll = 
         match lastUpdated with
-            | x when x > DateTime.Now.AddSeconds(-9.0) -> cachedReport
+            | x when x > DateTime.Now.AddSeconds(-0.5) -> cachedReport
             | _ -> 
-                let (issues, elapsed) = measureTime(fun() -> Jira.getCombinedIssues "-12h")
+                let (issues, elapsed) = measureTime(fun() -> Jira.getCombinedIssues "-12h" includeAll)
                 lastUpdated <- DateTime.Now
                 updateDuration <- elapsed
                 cachedReport <- issues
                 cachedReport
 
-    let getReport (showComments : bool) (personFilter : string) =
-        let issues = getIssues()
+    let getReport (showComments : bool) (personFilter : string) (includeAll : bool) =
+        let issues = getIssues includeAll
         let reportBody = HtmlFormatter.renderReport issues showComments personFilter
 
         sprintf "%s%s<br/><br/><hr/><span style='font-size:small'>
-            Use showComments=true&personFilter=name in URL.
+            Use showComments=true&personFilter=name&includeAll=true in URL.
             <br/>Last updated at %A in %A%s. 
             <br/><a href='https://github.com/ptupitsyn/jira-reporter'>github.com/ptupitsyn/jira-reporter</a></span>" 
             header reportBody lastUpdated updateDuration footer

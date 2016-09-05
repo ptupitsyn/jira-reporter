@@ -21,7 +21,7 @@ module Jira =
     let ApiUrl = JiraUrl + "rest/api/2/"
 
     [<Literal>]
-    let ExpandParams = "&expand=changelog&fields=summary,status,comment,assignee,parent,updated"
+    let ExpandParams = "&expand=changelog&fields=summary,status,comment,assignee,parent,updated,reporter"
     
     [<Literal>]
     let SampleUrl = ApiUrl + "search?jql=project=ignite&maxResults=10" + ExpandParams
@@ -79,9 +79,10 @@ module Jira =
         assert (initial.Total = res.Length)  // check that all pages are loaded
         res
 
-    let getIssueAuthors (issue: Issues.Issue) = 
+    let getIssueAuthors (issue: Issues.Issue) includeAll = 
         let hist = issue.Changelog.Histories 
-                        |> Seq.where (fun hist -> hist.Items  |> Seq.exists (fun x -> x.Field = "status"))  // Only status changes get into the report
+                        // Only status changes get into the report when includeAll is false.
+                        |> Seq.where (fun hist -> includeAll || hist.Items |> Seq.exists (fun x -> x.Field = "status"))  
                         |> Seq.where (fun hist -> (System.DateTime.Now - hist.Created).TotalHours < 12.0) // TODO: period is ignored!
                         |> Seq.map (fun hist -> hist.Author.DisplayName)
 
@@ -89,13 +90,15 @@ module Jira =
                         |> Seq.where (fun com -> (System.DateTime.Now - com.Updated).TotalHours < 12.0)
                         |> Seq.map (fun com -> com.Author.DisplayName)
 
-        [hist; comm] |> Seq.concat |> Seq.distinct
+        let created = if includeAll && issue.Changelog.Histories.Length = 0 then [issue.Fields.Reporter.DisplayName] else []
 
-    let transformRawIssues jiraResult getPatches = 
+        [hist; comm; created |> Seq.ofList] |> Seq.concat |> Seq.distinct
+
+    let transformRawIssues jiraResult getPatches includeAll = 
         match jiraResult with
             | [||] -> Seq.empty
             | x -> x 
-                |> Seq.collect (fun issue -> getIssueAuthors issue |> Seq.map (fun author -> (author, issue)))
+                |> Seq.collect (fun issue -> getIssueAuthors issue includeAll |> Seq.map (fun author -> (author, issue)))
                 |> Seq.groupBy (fun (person, _) -> person)
                 |> Seq.sortBy (fun (person, _) -> person)
                 |> Seq.map (fun (person, issuePairs) -> 
@@ -104,17 +107,22 @@ module Jira =
                                 Tasks = issuePairs |> Seq.map (snd>>createIssue) |> Array.ofSeq; 
                                 Patches = getPatches person
                             })
-        
 
-    let getIgniteIssues period = 
-        let url = sprintf "%ssearch?jql=project=ignite AND updated>%s AND status != open&maxResults=100%s" ApiUrl period ExpandParams
+    let getIgniteStatusFilter includeAll = 
+        if includeAll then "" else " AND status not in (open)"
+
+    let getGgStatusFilter includeAll = 
+        if includeAll then "" else " AND status not in (open, 'newly created', 'backlog')"
+
+    let getIgniteIssues period includeAll = 
+        let url = sprintf "%ssearch?jql=project=ignite AND updated>%s%s&maxResults=100%s" ApiUrl period (getIgniteStatusFilter includeAll) ExpandParams
         let onReviewUrl = sprintf "%ssearch?jql=project=ignite AND status = 'Patch Available'&maxResults=100%s" ApiUrl ExpandParams
         
         let jiraResult = loadAllIssues url
         let onReview = loadAllIssues onReviewUrl
 
         let historyIsPatch (hist : Issues.History) = 
-            hist.Items |> Seq.exists (fun x -> (x.Field = "status" && x.ToString.String = Some("Patch Available")))
+            hist.Items |> Seq.exists (fun x -> (x.Field = "status" && x.ToString = Some("Patch Available")))
 
         let findPatchAuthor (issue : Issues.Issue) = 
             (issue.Changelog.Histories |> Seq.filter historyIsPatch |> Seq.last).Author.DisplayName
@@ -129,7 +137,7 @@ module Jira =
                 | Some(reviews) -> reviews |> Seq.map createIssue |> Seq.sortBy (fun x -> x.Updated) |> Array.ofSeq
                 | _ -> [||]                
 
-        transformRawIssues jiraResult getPatches
+        transformRawIssues jiraResult getPatches includeAll
 
 
     let getEncodedCreds() = 
@@ -139,26 +147,26 @@ module Jira =
         Convert.ToBase64String byteCreds
 
 
-    let getGgIssuesRaw (period : string) = 
+    let getGgIssuesRaw (period : string) includeAll = 
         let wc = new WebClient()
         let creds = "Basic " + getEncodedCreds()
         wc.Headers.Add(HttpRequestHeader.Authorization, creds)
-        let url = sprintf "https://ggsystems.atlassian.net/rest/api/2/search?jql=project=gg AND updated>%s AND status not in (open, 'newly created')&maxResults=1000%s" period ExpandParams
+        let url = sprintf "https://ggsystems.atlassian.net/rest/api/2/search?jql=project=gg AND updated>%s%s&maxResults=1000%s" period (getGgStatusFilter includeAll) ExpandParams
         wc.DownloadString url
 
 
-    let getGgIssues period = 
-        let json = getGgIssuesRaw period
+    let getGgIssues period includeAll = 
+        let json = getGgIssuesRaw period includeAll
 
         // TODO: Pages
         let jiraResult = (Issues.Parse json).Issues
 
-        transformRawIssues jiraResult (fun _ -> [||])
+        transformRawIssues jiraResult (fun _ -> [||]) includeAll
 
 
-    let getCombinedIssues period = 
-        let igniteTask = Task.Factory.StartNew(fun () -> getIgniteIssues period)
-        let ggTask = Task.Factory.StartNew(fun () -> getGgIssues period)
+    let getCombinedIssues period includeAll = 
+        let igniteTask = Task.Factory.StartNew(fun () -> getIgniteIssues period includeAll)
+        let ggTask = Task.Factory.StartNew(fun () -> getGgIssues period includeAll)
 
         Task.WaitAll(igniteTask, ggTask)
 

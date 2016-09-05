@@ -16,7 +16,11 @@ module WebServer =
                                         | Choice1Of2 x -> x
                                         | _ -> ""
                 
-                let html = Reporter.getReportSynced showComments personFilter                
+                let includeAll = match ctx.request.queryParam "includeAll" with
+                                        | Choice1Of2 x -> x = "true"
+                                        | _ -> false
+
+                let html = Reporter.getReportSynced showComments personFilter includeAll
                 OK html ctx
 
         let suaveCfg = { defaultConfig with bindings = [ HttpBinding.mk HTTP IPAddress.Any 3443us ] }
