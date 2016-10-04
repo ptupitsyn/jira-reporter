@@ -1,11 +1,13 @@
 ﻿namespace JiraFsharpService
 open System
+open System.Web
 
 module HtmlFormatter = 
     let renderReport (items : seq<ReportItem>) (showComments : bool) (personFilter : string) = 
         let concat acc x = acc + "<br />" + x
         let concat2 acc x = acc + "<br /><br /><hr />" + x
         let makeLink text url = sprintf "<a href='%s'>%s</a>" url text
+        let urlEncode (s : string) = HttpUtility.UrlPathEncode(s)
 
         let formatStatus status = 
             let color = 
@@ -43,7 +45,6 @@ module HtmlFormatter =
                 | _ -> ""
             + issue.Key
 
-        // TODO: Combobox with names, store last one in cookie?
         let renderItem (item : ReportItem) = 
             // Include parent issues in main list if missing to display subtasks properly
             let taskMissing t = 
@@ -56,10 +57,12 @@ module HtmlFormatter =
                             |> Seq.distinct
 
             let tasks = parents |> Seq.append item.Tasks |> Seq.sortBy getSort |> Seq.map renderIssue |> Seq.reduce concat
+            
             let patches = 
                 if item.Patches.Length > 0 
                     then item.Patches |> Seq.map renderPatch |> Seq.fold concat "<br/><br/><b>Pending Patches</b>" 
                     else ""
+
             sprintf "<h2>%s</h2>%s%s" item.Person tasks patches
 
         let filteredItems = 
@@ -68,6 +71,10 @@ module HtmlFormatter =
                 else items |> Seq.where (fun x -> x.Person.IndexOf(personFilter, StringComparison.OrdinalIgnoreCase) > 0)
 
         let report = if (Seq.isEmpty filteredItems) then "" else filteredItems |> Seq.map renderItem |> Seq.reduce concat2
+
+        let title = Jira.getTitle()
+
+        let mailto = sprintf "mailto:eng-core@gridgain.com?subject=%s" (title |> urlEncode)
         
-        sprintf "<h1>%s</h1>%s" (Jira.getTitle()) report
+        sprintf "<h1><a href='%s'>%s</a></h1>%s" mailto title report
 
