@@ -29,7 +29,9 @@ module HtmlFormatter =
             match issue.Parent with
                 | Some(_) -> "&nbsp;&nbsp;○ "
                 | _ -> ""
-            + makeLink (issue.Key + " " + issue.Summary) issue.Url + " - " + formatStatus issue.Status 
+            + makeLink issue.Key issue.Url + " "
+            + makeLink issue.Summary (sprintf "https://ggsystems.atlassian.net/issues/?jql=summary~%s" issue.Key)
+            + " - " + formatStatus issue.Status 
             + if showComments then renderComment issue else ""
             + "<br />"
 
