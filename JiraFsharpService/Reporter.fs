@@ -16,6 +16,7 @@ module Reporter =
         <html>
             <head>
                 <meta charset="utf-8" />
+                <meta http-equiv="Pragma" content="no-cache"/>
                 <title>%s</title>
                 <style type="text/css">body{margin:20px 40px}</style>
             </head>
